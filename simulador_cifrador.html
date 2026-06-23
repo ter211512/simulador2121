@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simulador Cifrador ASCII — Tarea 3 HWD</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #f0f2f5;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    color: #1a1a2e;
+    min-height: 100vh;
+    padding: 24px;
+  }
+
+  /* ── HEADER ── */
+  .header {
+    background: linear-gradient(135deg, #1a237e, #1565c0);
+    color: #fff;
+    border-radius: 14px;
+    padding: 24px 32px;
+    margin-bottom: 24px;
+    box-shadow: 0 4px 20px rgba(21,101,192,.3);
+  }
+  .header h1 { font-size: 1.5rem; font-weight: 700; }
+  .header p  { font-size: 0.88rem; opacity: .8; margin-top: 4px; }
+  .badges    { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  .badge {
+    background: rgba(255,255,255,.18);
+    border: 1px solid rgba(255,255,255,.3);
+    color: #fff; padding: 3px 12px;
+    border-radius: 20px; font-size: .75rem; font-weight: 600;
+  }
+
+  /* ── LAYOUT ── */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+  @media(max-width:860px){ .grid-2,.grid-3{ grid-template-columns:1fr; } }
+
+  /* ── CARD ── */
+  .card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 22px;
+    box-shadow: 0 2px 12px rgba(0,0,0,.08);
+    margin-bottom: 20px;
+  }
+  .card-title {
+    font-size: .72rem; font-weight: 700; letter-spacing: 1.2px;
+    text-transform: uppercase; color: #1565c0;
+    margin-bottom: 14px; padding-bottom: 8px;
+    border-bottom: 2px solid #e3f2fd;
+  }
+
+  /* ── INPUTS ── */
+  label {
+    display: block; font-size: .82rem;
+    font-weight: 600; color: #444; margin-bottom: 4px;
+  }
+  input[type="text"], input[type="number"] {
+    width: 100%; padding: 10px 14px;
+    border: 2px solid #dce3ec; border-radius: 8px;
+    font-size: 1rem; font-family: 'Courier New', monospace;
+    color: #1a1a2e; background: #f8fafc;
+    transition: border-color .2s;
+    margin-bottom: 14px;
+  }
+  input:focus { outline: none; border-color: #1565c0; background: #fff; }
+
+  /* ── BUTTONS ── */
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 10px 22px; border-radius: 8px;
+    font-size: .9rem; font-weight: 700; cursor: pointer;
+    border: none; transition: all .15s; margin-right: 8px; margin-top: 4px;
+  }
+  .btn-blue   { background: #1565c0; color: #fff; }
+  .btn-blue:hover   { background: #0d47a1; }
+  .btn-green  { background: #2e7d32; color: #fff; }
+  .btn-green:hover  { background: #1b5e20; }
+  .btn-red    { background: #c62828; color: #fff; }
+  .btn-red:hover    { background: #b71c1c; }
+  .btn-gray   { background: #e0e0e0; color: #333; }
+  .btn-gray:hover   { background: #bdbdbd; }
+
+  /* ── BIT TOGGLE ── */
+  .bit-section label { margin-bottom: 6px; }
+  .bit-row { display: flex; gap: 6px; margin: 6px 0 2px; }
+  .bit-idx { display: flex; gap: 6px; margin-bottom: 10px; }
+  .bit-idx span {
+    width: 38px; text-align: center;
+    font-size: .7rem; color: #888; font-family: 'Courier New', monospace;
+  }
+  .bit-btn {
+    width: 38px; height: 38px; border-radius: 7px;
+    border: 2px solid #bbb; background: #f5f5f5;
+    color: #999; font-family: 'Courier New', monospace;
+    font-size: 1.05rem; font-weight: 700; cursor: pointer;
+    transition: all .12s;
+  }
+  .bit-btn.on {
+    background: #e8f5e9; border-color: #2e7d32;
+    color: #2e7d32;
+  }
+  .key-val-display {
+    font-size: .82rem; color: #666; margin-top: 4px;
+    font-family: 'Courier New', monospace;
+  }
+
+  /* ── RESULT PANELS ── */
+  .result-panel {
+    background: #f8fafc; border: 2px solid #e3f2fd;
+    border-radius: 10px; padding: 16px; min-height: 80px;
+  }
+  .result-row {
+    display: flex; justify-content: space-between;
+    align-items: center; padding: 5px 0;
+    border-bottom: 1px solid #eee;
+  }
+  .result-row:last-child { border-bottom: none; }
+  .rlabel { font-size: .82rem; color: #666; }
+  .rval   { font-family: 'Courier New', monospace; font-weight: 700; font-size: 1rem; color: #1565c0; }
+  .rchar  { font-size: 1.2rem; font-weight: 700; color: #2e7d32; }
+  .empty-msg { color: #bbb; font-size: .88rem; text-align: center; padding: 16px; }
+
+  /* ── TABLE ── */
+  .tbl-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-family: 'Courier New', monospace; font-size: .82rem; }
+  thead tr { background: #1565c0; color: #fff; }
+  th { padding: 8px 10px; text-align: center; font-size: .75rem; }
+  td { padding: 6px 10px; text-align: center; border-bottom: 1px solid #eee; }
+  tr:hover td { background: #e3f2fd; }
+  .td1 { color: #2e7d32; font-weight: 700; }
+  .td0 { color: #999; }
+  .tdm { color: #e65100; font-weight: 700; }
+  .tdc { color: #c62828; font-weight: 700; }
+  .tdhdr { background: #e3f2fd; font-weight: 700; color: #1565c0; }
+
+  /* ── STRING RESULT TABLE ── */
+  .str-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+  .str-table th { background: #1a237e; color: #fff; padding: 7px 12px; font-size: .78rem; }
+  .str-table td { padding: 7px 12px; border-bottom: 1px solid #e0e0e0; font-size: .88rem; }
+  .str-table tr:last-child td { border-bottom: none; }
+  .str-table tr:hover td { background: #f5f5f5; }
+
+  /* ── FORMULA BOX ── */
+  .formula {
+    background: #fffde7; border: 1px solid #f9a825;
+    border-left: 4px solid #f9a825;
+    border-radius: 6px; padding: 12px 16px;
+    font-family: 'Courier New', monospace; font-size: .88rem;
+    color: #4e342e; line-height: 1.8; margin: 12px 0;
+  }
+
+  /* ── INFO BOX ── */
+  .info {
+    background: #e3f2fd; border: 1px solid #90caf9;
+    border-radius: 8px; padding: 12px 16px;
+    font-size: .84rem; color: #1565c0; margin: 10px 0;
+  }
+  .info b { color: #0d47a1; }
+
+  /* ── CHAR GRID (ASCII demo) ── */
+  .char-grid {
+    display: grid; grid-template-columns: repeat(8,1fr);
+    gap: 4px; margin-top: 10px;
+  }
+  .cg-cell {
+    background: #f5f5f5; border: 1px solid #ddd;
+    border-radius: 5px; padding: 5px 2px;
+    text-align: center; font-size: .75rem;
+  }
+  .cg-cell .cb { font-weight: 700; font-family: 'Courier New', monospace; color: #1565c0; }
+  .cg-cell .cl { color: #888; font-size: .68rem; }
+  .cg-cell.active { background: #e8f5e9; border-color: #4caf50; }
+  .cg-cell.active .cb { color: #2e7d32; }
+
+  /* ── DIVIDER ── */
+  .divider { height: 1px; background: #e0e0e0; margin: 6px 0 16px; }
+
+  /* ── STATUS TAG ── */
+  .tag {
+    display: inline-block; padding: 2px 10px; border-radius: 20px;
+    font-size: .75rem; font-weight: 700;
+  }
+  .tag-ok  { background: #e8f5e9; color: #2e7d32; }
+  .tag-err { background: #ffebee; color: #c62828; }
+
+  /* ── SECTION TITLE ── */
+  h2 {
+    font-size: 1.1rem; font-weight: 700; color: #1a237e;
+    margin-bottom: 16px; display: flex; align-items: center; gap: 8px;
+  }
+  h2::before {
+    content: ''; display: inline-block;
+    width: 5px; height: 20px;
+    background: #1565c0; border-radius: 3px;
+  }
+
+  .mono { font-family: 'Courier New', monospace; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <h1>⚡ Simulador Cifrador ASCII</h1>
+  <p>Hardware Digital — CIN212 / ICI215 / INF215 · Universidad de Valparaíso · 1S 2026</p>
+  <div class="badges">
+    <span class="badge">C_i = M_i ⊕ Majority(K_i, K_{i-1}, K_{i+1})</span>
+    <span class="badge">Solo NOT · AND · OR</span>
+    <span class="badge">Módulo combinacional replicable × 8</span>
+  </div>
+</div>
+
+<!-- FÓRMULA -->
+<div class="card">
+  <div class="card-title">📐 Expresión booleana implementada</div>
+  <div class="formula">
+    máscara_i  =  (K_i · K_(i-1))  +  (K_i · K_(i+1))  +  (K_(i-1) · K_(i+1))<br>
+    C_i        =  (M_i · ¬máscara_i)  +  (¬M_i · máscara_i)<br>
+    <span style="color:#888">// equivalente a: C_i = M_i ⊕ Majority(K_i, K_(i-1), K_(i+1))</span><br>
+    <span style="color:#888">// Conexión circular: K_(-1) = K_7  |  K_8 = K_0</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- SECCIÓN 1: CIFRADO DE STRING                          -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="card">
+  <div class="card-title">🔤 Sección 1 — Cifrado de palabra completa</div>
+  <div class="grid-2">
+    <div>
+      <label>Palabra / string (máx. 4 caracteres)</label>
+      <input type="text" id="s1-word" maxlength="4" value="HOLA" placeholder="Ej: HOLA">
+
+      <label>Llave K (valor en base 10, rango 0–255)</label>
+      <input type="number" id="s1-key" min="0" max="255" value="42" placeholder="0 – 255">
+
+      <div id="s1-key-preview" class="key-val-display"></div>
+
+      <br>
+      <button class="btn btn-blue" onclick="cifrarString()">▶ Cifrar</button>
+      <button class="btn btn-green" onclick="verificarBidireccional()">🔄 Verificar descifrado</button>
+      <button class="btn btn-gray" onclick="limpiarS1()">✕ Limpiar</button>
+    </div>
+    <div>
+      <div class="result-panel" id="s1-result">
+        <p class="empty-msg">Ingresa una palabra y presiona ▶ Cifrar</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+  <div id="s1-table-wrap" style="display:none">
+    <b style="font-size:.85rem;color:#1a237e">Detalle por carácter:</b>
+    <div class="tbl-wrap" style="margin-top:8px">
+      <table class="str-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Char</th>
+            <th>ASCII (dec)</th>
+            <th>ASCII (bin)</th>
+            <th>Cifrado (dec)</th>
+            <th>Cifrado (bin)</th>
+            <th>Cifrado (char)</th>
+          </tr>
+        </thead>
+        <tbody id="s1-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- SECCIÓN 2: ANÁLISIS BIT A BIT                         -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="card">
+  <div class="card-title">🔬 Sección 2 — Análisis bit a bit (carácter individual)</div>
+  <div class="grid-2">
+    <!-- Inputs -->
+    <div>
+      <label>Carácter a cifrar</label>
+      <input type="text" id="s2-char" maxlength="1" value="H" oninput="updateS2Preview()">
+
+      <div class="bit-section">
+        <label>Llave K — haz clic en cada bit para alternar (bit 7 … bit 0)</label>
+        <div class="bit-row" id="s2-key-bits"></div>
+        <div class="bit-idx" id="s2-key-idx"></div>
+        <div class="key-val-display" id="s2-key-display"></div>
+      </div>
+
+      <br>
+      <button class="btn btn-blue" onclick="analizarBits()">🔍 Analizar</button>
+      <button class="btn btn-gray" onclick="resetKey()">↺ Reset llave</button>
+    </div>
+
+    <!-- Result -->
+    <div>
+      <div class="result-panel" id="s2-result">
+        <p class="empty-msg">Configura los parámetros y presiona 🔍 Analizar</p>
+      </div>
+      <div id="s2-char-grid" style="margin-top:12px"></div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- Bit-by-bit table -->
+  <div id="s2-table-wrap" style="display:none">
+    <b style="font-size:.85rem;color:#1a237e">Tabla de operaciones por bit:</b>
+    <div class="tbl-wrap" style="margin-top:8px">
+      <table>
+        <thead>
+          <tr>
+            <th>Bit i</th>
+            <th>M_i</th>
+            <th>K_i</th>
+            <th>K_(i-1)</th>
+            <th>K_(i+1)</th>
+            <th>w1 = K_i·K_p</th>
+            <th>w2 = K_i·K_n</th>
+            <th>w3 = K_p·K_n</th>
+            <th>máscara</th>
+            <th>C_i</th>
+          </tr>
+        </thead>
+        <tbody id="s2-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- SECCIÓN 3: PRUEBA DEL PROFESOR (formato informe)      -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="card">
+  <div class="card-title">📋 Sección 3 — Registro de prueba (formato informe)</div>
+  <div class="info">
+    <b>Instrucción:</b> Ingresa los datos que envió el profesor por correo. El simulador genera
+    el resultado listo para copiar en el informe.
+  </div>
+  <div class="grid-3">
+    <div>
+      <label>Nombre del estudiante</label>
+      <input type="text" id="s3-name" placeholder="Tu nombre completo">
+    </div>
+    <div>
+      <label>Palabra de prueba (string, 4 chars)</label>
+      <input type="text" id="s3-word" maxlength="4" placeholder="Enviada por el profesor">
+    </div>
+    <div>
+      <label>Llave (base 10, 0–255)</label>
+      <input type="number" id="s3-key" min="0" max="255" placeholder="Enviada por el profesor">
+    </div>
+  </div>
+  <button class="btn btn-blue" onclick="generarInforme()">📄 Generar resultado para informe</button>
+
+  <div id="s3-result" style="display:none; margin-top:16px">
+    <div style="background:#f9f9f9;border:2px solid #1565c0;border-radius:10px;padding:20px">
+      <div style="font-size:.78rem;color:#888;margin-bottom:10px;text-transform:uppercase;letter-spacing:1px">Resultado — copiar al informe</div>
+      <table style="width:100%;border-collapse:collapse;font-size:.9rem">
+        <tr>
+          <td style="padding:8px 12px;font-weight:700;color:#1a237e;width:220px">Estudiante:</td>
+          <td style="padding:8px 12px" id="r-name" class="mono"></td>
+        </tr>
+        <tr style="background:#f0f4ff">
+          <td style="padding:8px 12px;font-weight:700;color:#1a237e">i. Palabra de prueba:</td>
+          <td style="padding:8px 12px" id="r-word" class="mono"></td>
+        </tr>
+        <tr>
+          <td style="padding:8px 12px;font-weight:700;color:#1a237e">ii. Llave (base 10):</td>
+          <td style="padding:8px 12px" id="r-key" class="mono"></td>
+        </tr>
+        <tr style="background:#f0f4ff">
+          <td style="padding:8px 12px;font-weight:700;color:#1a237e">Llave (binario):</td>
+          <td style="padding:8px 12px" id="r-keybin" class="mono"></td>
+        </tr>
+        <tr>
+          <td style="padding:8px 12px;font-weight:700;color:#1a237e">iii. Resultado cifrado:</td>
+          <td style="padding:8px 12px;font-size:1.1rem;font-weight:700;color:#2e7d32" id="r-enc" class="mono"></td>
+        </tr>
+        <tr style="background:#f0f4ff">
+          <td style="padding:8px 12px;font-weight:700;color:#1a237e">Cifrado (por char):</td>
+          <td style="padding:8px 12px" id="r-encdetail" class="mono"></td>
+        </tr>
+      </table>
+      <div id="r-bitdetail" style="margin-top:14px"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- SECCIÓN 4: TABLA DE VERDAD COMPLETA                   -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="card">
+  <div class="card-title">📊 Sección 4 — Tabla de verdad completa (1 bit)</div>
+  <div class="info">
+    <b>Variables:</b> M = M_i (mensaje), A = K_i, B = K_(i-1), C = K_(i+1) · 4 variables → 16 filas
+  </div>
+  <div class="tbl-wrap">
+    <table id="truth-table">
+      <thead>
+        <tr>
+          <th>Fila</th>
+          <th>M</th>
+          <th>A (K_i)</th>
+          <th>B (K_p)</th>
+          <th>C (K_n)</th>
+          <th>w1=A·B</th>
+          <th>w2=A·C</th>
+          <th>w3=B·C</th>
+          <th>máscara</th>
+          <th>C_i (salida)</th>
+        </tr>
+      </thead>
+      <tbody id="tt-body"></tbody>
+    </table>
+  </div>
+  <div style="margin-top:12px" id="tt-minterms"></div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// CORE LOGIC
+// ═══════════════════════════════════════════════════════
+function majority(a,b,c){ return (a&b)|(a&c)|(b&c); }
+
+function cipherBit(mi, ki, kp, kn){
+  const mask = majority(ki, kp, kn);
+  return mi ^ mask;
+}
+
+function cipherByte(charCode, kArr){
+  let result = 0;
+  for(let i=0;i<8;i++){
+    const mi  = (charCode >> i) & 1;
+    const ki  = kArr[i];
+    const kp  = kArr[(i+7)%8];
+    const kn  = kArr[(i+1)%8];
+    const ci  = cipherBit(mi, ki, kp, kn);
+    result |= (ci << i);
+  }
+  return result;
+}
+
+function keyToArr(keyVal){
+  const k = Math.max(0, Math.min(255, keyVal|0));
+  return Array.from({length:8}, (_,i)=>(k>>i)&1);
+}
+
+function toChar(code){
+  if(code >= 32 && code <= 126) return String.fromCharCode(code);
+  return `[${code}]`;
+}
+
+function pad8(n){ return n.toString(2).padStart(8,'0'); }
+
+// ═══════════════════════════════════════════════════════
+// SECTION 1 — STRING CIPHER
+// ═══════════════════════════════════════════════════════
+function updateKeyPreview(){
+  const val = parseInt(document.getElementById('s1-key').value)||0;
+  const k = Math.max(0,Math.min(255,val));
+  document.getElementById('s1-key-preview').textContent =
+    `K = ${k}  →  binario: ${pad8(k)}`;
+}
+document.getElementById('s1-key').addEventListener('input', updateKeyPreview);
+updateKeyPreview();
+
+function cifrarString(){
+  const word = document.getElementById('s1-word').value;
+  const keyVal = parseInt(document.getElementById('s1-key').value)||0;
+  const kArr = keyToArr(keyVal);
+
+  if(!word){ alert('Ingresa una palabra.'); return; }
+
+  const rows = [];
+  for(const ch of word){
+    const ascii = ch.charCodeAt(0);
+    const enc   = cipherByte(ascii, kArr);
+    rows.push({ ch, ascii, enc, encChar: toChar(enc) });
+  }
+
+  // Result panel
+  const encStr = rows.map(r=>r.encChar).join('');
+  let html = `
+    <div class="result-row"><span class="rlabel">Palabra original:</span><span class="rchar">${word}</span></div>
+    <div class="result-row"><span class="rlabel">Llave K:</span><span class="rval">${keyVal} = ${pad8(keyVal)}b</span></div>
+    <div class="result-row"><span class="rlabel">String cifrado:</span><span class="rchar">${encStr}</span></div>
+  `;
+  rows.forEach(r=>{
+    html += `<div class="result-row">
+      <span class="rlabel">'${r.ch}' (${r.ascii})</span>
+      <span class="rval">→ ${r.enc} = '${r.encChar}'</span>
+    </div>`;
+  });
+  document.getElementById('s1-result').innerHTML = html;
+
+  // Detail table
+  const tbody = document.getElementById('s1-tbody');
+  tbody.innerHTML = '';
+  rows.forEach((r,i)=>{
+    tbody.innerHTML += `<tr>
+      <td>${i+1}</td>
+      <td style="font-weight:700">'${r.ch}'</td>
+      <td>${r.ascii}</td>
+      <td>${pad8(r.ascii)}</td>
+      <td>${r.enc}</td>
+      <td>${pad8(r.enc)}</td>
+      <td style="font-weight:700;color:#2e7d32">'${r.encChar}'</td>
+    </tr>`;
+  });
+  document.getElementById('s1-table-wrap').style.display='block';
+}
+
+function verificarBidireccional(){
+  const word = document.getElementById('s1-word').value;
+  const keyVal = parseInt(document.getElementById('s1-key').value)||0;
+  const kArr = keyToArr(keyVal);
+  if(!word){ alert('Ingresa una palabra.'); return; }
+
+  // Cifrar
+  let enc='';
+  for(const ch of word){
+    enc += toChar(cipherByte(ch.charCodeAt(0), kArr));
+  }
+  // Descifrar (cifrar de nuevo = XOR propiedad involutiva)
+  let dec='';
+  for(const ch of enc){
+    dec += toChar(cipherByte(ch.charCodeAt(0), kArr));
+  }
+  const ok = dec === word;
+  document.getElementById('s1-result').innerHTML = `
+    <div class="result-row"><span class="rlabel">Original:</span><span class="rchar">${word}</span></div>
+    <div class="result-row"><span class="rlabel">Cifrado:</span><span class="rchar">${enc}</span></div>
+    <div class="result-row"><span class="rlabel">Descifrado:</span><span class="rchar">${dec}</span></div>
+    <div class="result-row"><span class="rlabel">Verificación:</span>
+      <span class="tag ${ok?'tag-ok':'tag-err'}">${ok?'✓ CORRECTO — cifrado es involutivo':'✗ ERROR'}</span>
+    </div>
+  `;
+}
+
+function limpiarS1(){
+  document.getElementById('s1-result').innerHTML='<p class="empty-msg">Ingresa una palabra y presiona ▶ Cifrar</p>';
+  document.getElementById('s1-table-wrap').style.display='none';
+}
+
+// ═══════════════════════════════════════════════════════
+// SECTION 2 — BIT BY BIT
+// ═══════════════════════════════════════════════════════
+let keyBits = Array(8).fill(0); // bit 7..0
+keyBits = [0,0,1,0,1,0,1,0]; // default 42
+
+function initKeyBitsUI(){
+  const row = document.getElementById('s2-key-bits');
+  const idx = document.getElementById('s2-key-idx');
+  row.innerHTML=''; idx.innerHTML='';
+  for(let i=7;i>=0;i--){
+    const btn = document.createElement('button');
+    btn.className = 'bit-btn' + (keyBits[i]?' on':'');
+    btn.textContent = keyBits[i];
+    btn.title = `K${i}`;
+    btn.onclick = ()=>{
+      keyBits[i] ^= 1;
+      btn.textContent = keyBits[i];
+      btn.classList.toggle('on');
+      updateS2KeyDisplay();
+    };
+    row.appendChild(btn);
+
+    const sp = document.createElement('span');
+    sp.textContent = `K${i}`;
+    idx.appendChild(sp);
+  }
+  updateS2KeyDisplay();
+}
+
+function updateS2KeyDisplay(){
+  const val = keyBits.reduce((s,b,i)=>s+(b<<i),0);
+  document.getElementById('s2-key-display').textContent =
+    `Llave actual: ${val} (decimal)  →  ${pad8(val)} (binario)`;
+}
+
+function updateS2Preview(){ /* live update on char change */ }
+
+function resetKey(){
+  keyBits = Array(8).fill(0);
+  initKeyBitsUI();
+}
+
+function analizarBits(){
+  const ch = document.getElementById('s2-char').value;
+  if(!ch){ alert('Ingresa un carácter.'); return; }
+
+  const ascii = ch.charCodeAt(0);
+  const kArr  = [...keyBits]; // kArr[0]=bit0 ... kArr[7]=bit7
+  const enc   = cipherByte(ascii, kArr);
+  const encCh = toChar(enc);
+
+  // Result panel
+  document.getElementById('s2-result').innerHTML = `
+    <div class="result-row"><span class="rlabel">Carácter:</span><span class="rchar">'${ch}'</span></div>
+    <div class="result-row"><span class="rlabel">ASCII decimal:</span><span class="rval">${ascii}</span></div>
+    <div class="result-row"><span class="rlabel">ASCII binario:</span><span class="rval">${pad8(ascii)}</span></div>
+    <div class="result-row"><span class="rlabel">Llave K:</span><span class="rval">${kArr.reduce((s,b,i)=>s+(b<<i),0)} = ${pad8(kArr.reduce((s,b,i)=>s+(b<<i),0))}b</span></div>
+    <div class="result-row"><span class="rlabel">Cifrado decimal:</span><span class="rval">${enc}</span></div>
+    <div class="result-row"><span class="rlabel">Cifrado binario:</span><span class="rval">${pad8(enc)}</span></div>
+    <div class="result-row"><span class="rlabel">Cifrado char:</span><span class="rchar">'${encCh}'</span></div>
+  `;
+
+  // Bit visualization grid
+  let gridHtml = '<div style="font-size:.75rem;color:#666;margin-bottom:4px">Bits del resultado (7→0):</div><div class="char-grid">';
+  for(let i=7;i>=0;i--){
+    const mi = (ascii>>i)&1;
+    const ki = kArr[i], kp=kArr[(i+7)%8], kn=kArr[(i+1)%8];
+    const mask=majority(ki,kp,kn);
+    const ci = mi^mask;
+    gridHtml += `<div class="cg-cell ${ci?'active':''}">
+      <div class="cb">${ci}</div>
+      <div class="cl">b${i}</div>
+    </div>`;
+  }
+  gridHtml += '</div>';
+  document.getElementById('s2-char-grid').innerHTML = gridHtml;
+
+  // Bit table
+  const tbody = document.getElementById('s2-tbody');
+  tbody.innerHTML='';
+  for(let i=0;i<8;i++){
+    const mi = (ascii>>i)&1;
+    const ki = kArr[i];
+    const kp = kArr[(i+7)%8];
+    const kn = kArr[(i+1)%8];
+    const w1 = ki&kp, w2=ki&kn, w3=kp&kn;
+    const mask= w1|w2|w3;
+    const ci  = mi^mask;
+    tbody.innerHTML += `<tr>
+      <td class="tdhdr">${i}</td>
+      <td class="${mi?'td1':'td0'}">${mi}</td>
+      <td class="${ki?'td1':'td0'}">${ki}</td>
+      <td class="${kp?'td1':'td0'}">${kp}</td>
+      <td class="${kn?'td1':'td0'}">${kn}</td>
+      <td>${w1}</td><td>${w2}</td><td>${w3}</td>
+      <td class="tdm">${mask}</td>
+      <td class="tdc">${ci}</td>
+    </tr>`;
+  }
+  document.getElementById('s2-table-wrap').style.display='block';
+}
+
+// ═══════════════════════════════════════════════════════
+// SECTION 3 — INFORME
+// ═══════════════════════════════════════════════════════
+function generarInforme(){
+  const name  = document.getElementById('s3-name').value || '—';
+  const word  = document.getElementById('s3-word').value;
+  const keyVal= parseInt(document.getElementById('s3-key').value)||0;
+
+  if(!word){ alert('Ingresa la palabra de prueba.'); return; }
+
+  const k = Math.max(0,Math.min(255,keyVal));
+  const kArr = keyToArr(k);
+
+  const rows = [];
+  for(const ch of word){
+    const ascii = ch.charCodeAt(0);
+    const enc   = cipherByte(ascii, kArr);
+    rows.push({ ch, ascii, enc, encChar: toChar(enc) });
+  }
+  const encStr = rows.map(r=>r.encChar).join('');
+
+  document.getElementById('r-name').textContent = name;
+  document.getElementById('r-word').textContent = `"${word}"`;
+  document.getElementById('r-key').textContent  = k;
+  document.getElementById('r-keybin').textContent = pad8(k) + 'b';
+  document.getElementById('r-enc').textContent  = `"${encStr}"`;
+  document.getElementById('r-encdetail').textContent =
+    rows.map(r=>`'${r.ch}'(${r.ascii})→'${r.encChar}'(${r.enc})`).join('  |  ');
+
+  // per-char bit detail
+  let det = '<div style="margin-top:10px"><div class="tbl-wrap"><table class="str-table"><thead><tr><th>Char</th><th>Bit</th><th>M_i</th><th>K_i</th><th>K_p</th><th>K_n</th><th>mask</th><th>C_i</th></tr></thead><tbody>';
+  for(const r of rows){
+    const ascii = r.ascii;
+    for(let i=7;i>=0;i--){
+      const mi=(ascii>>i)&1, ki=kArr[i], kp=kArr[(i+7)%8], kn=kArr[(i+1)%8];
+      const mask=majority(ki,kp,kn), ci=mi^mask;
+      det += `<tr>
+        <td>${i===7?`'${r.ch}'`:''}</td>
+        <td>${i}</td>
+        <td>${mi}</td><td>${ki}</td><td>${kp}</td><td>${kn}</td>
+        <td style="color:#e65100;font-weight:700">${mask}</td>
+        <td style="color:#c62828;font-weight:700">${ci}</td>
+      </tr>`;
+    }
+  }
+  det += '</tbody></table></div></div>';
+  document.getElementById('r-bitdetail').innerHTML = det;
+  document.getElementById('s3-result').style.display='block';
+}
+
+// ═══════════════════════════════════════════════════════
+// SECTION 4 — TRUTH TABLE
+// ═══════════════════════════════════════════════════════
+function buildTruthTable(){
+  const tbody = document.getElementById('tt-body');
+  const minterms = [];
+  for(let i=0;i<16;i++){
+    const m  = (i>>3)&1;
+    const a  = (i>>2)&1;
+    const b  = (i>>1)&1;
+    const c  = (i>>0)&1;
+    const w1 = a&b, w2=a&c, w3=b&c;
+    const mask= w1|w2|w3;
+    const ci  = m^mask;
+    if(ci) minterms.push(i);
+    tbody.innerHTML += `<tr>
+      <td class="tdhdr">${i}</td>
+      <td class="${m?'td1':'td0'}">${m}</td>
+      <td class="${a?'td1':'td0'}">${a}</td>
+      <td class="${b?'td1':'td0'}">${b}</td>
+      <td class="${c?'td1':'td0'}">${c}</td>
+      <td>${w1}</td><td>${w2}</td><td>${w3}</td>
+      <td class="tdm">${mask}</td>
+      <td class="${ci?'tdc':'td0'}">${ci}</td>
+    </tr>`;
+  }
+  document.getElementById('tt-minterms').innerHTML =
+    `<div class="formula">C_i(M,A,B,C) = Σm(${minterms.join(',')})
+= ¬M·(A·B + A·C + B·C) + M·(¬A·¬B + ¬A·¬C + ¬B·¬C)</div>`;
+}
+
+// ═══════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════
+initKeyBitsUI();
+buildTruthTable();
+</script>
+</body>
+</html>
